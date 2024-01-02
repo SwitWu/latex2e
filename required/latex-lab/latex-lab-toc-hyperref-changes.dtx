@@ -1,6 +1,6 @@
 % \iffalse meta-comment
 %
-%% File: toc-hyperref-changes.dtx (C) Copyright 2022-2023 LaTeX Project
+%% File: latex-lab-toc-hyperref-changes.dtx (C) Copyright 2022-2023 LaTeX Project
 %
 % It may be distributed and/or modified under the conditions of the
 % LaTeX Project Public License (LPPL), either version 1.3c of this
@@ -16,6 +16,8 @@
 %
 % for those people who are interested or want to report an issue.
 %
+\def\ltlabtochyperdate{2023-07-20}
+\def\ltlabtochyperversion{0.85a}
 %<*driver>
 \documentclass{l3doc}
 \EnableCrossrefs
@@ -26,10 +28,10 @@
 %</driver>
 %
 % \fi
-% \title{The \textsf{toc-hyperref-changes} package\\
+% \title{The \textsf{latex-lab-toc-hyperref-changes} package\\
 % Changes and additions to hyperref related to toc entries}
 % \author{\LaTeX{} Project\thanks{Initial implementation done by Ulrike Fischer}}
-% \date{Version 0.81 2023-02-10}
+% \date{v\ltlabtochyperversion\ \ltlabtochyperdate}
 %
 % \maketitle
 %
@@ -71,27 +73,27 @@
 \ExplSyntaxOn
 \AddToHook{package/hyperref/after}
  {
-   \AddToHook{contentsline/text/before}[hyp]
+   \AddToHookWithArguments{contentsline/text/before}[hyp]
      {
-       \tl_if_blank:VF \@contentsline@arg@two%text
+       \tl_if_blank:nF {#2}%text
         {
-          \tl_if_blank:VF\@contentsline@arg@four%destination
+          \tl_if_blank:nF {#4}%destination
             {
               \int_case:nnF {\Hy@linktoc}
                 {
                   {0}{} %none
-                  {1}{\hyper@linkstart{link}{\@contentsline@arg@four}} %section
+                  {1}{\hyper@linkstart{link}{#4}} %section
                   {2}{} %page
                 }
-                {\hyper@linkstart{link}{\@contentsline@arg@four}} %all
+                {\hyper@linkstart{link}{#4}} %all
             }
           }
       }
-    \AddToHook{contentsline/text/after}[hyp]
+    \AddToHookWithArguments{contentsline/text/after}[hyp]
       {
-        \tl_if_blank:VF \@contentsline@arg@two
+        \tl_if_blank:nF {#2}
          {
-           \tl_if_blank:VF\@contentsline@arg@four
+           \tl_if_blank:nF {#4}
              {
                \int_case:nnF {\Hy@linktoc}
                  {
@@ -104,27 +106,27 @@
            }
        }
 
-    \AddToHook{contentsline/page/before}[hyp]
+    \AddToHookWithArguments{contentsline/page/before}[hyp]
       {
-        \tl_if_blank:VF \@contentsline@arg@three
+        \tl_if_blank:nF {#3}
          {
-           \tl_if_blank:VF\@contentsline@arg@two
+           \tl_if_blank:nF {#4} %
              {
                \int_case:nnF {\Hy@linktoc}
                  {
                    {0}{} %none
                    {1}{} %section
-                   {2}{\hyper@linkstart{link}{\@contentsline@arg@four}} %page
+                   {2}{\hyper@linkstart{link}{#4}} %page
                  }
-                 {\hyper@linkstart{link}{\@contentsline@arg@four}} %all
+                 {\hyper@linkstart{link}{#4}} %all
              } % none
            }
        }
-    \AddToHook{contentsline/page/after}[hyp]
+   \AddToHookWithArguments{contentsline/page/after}[hyp]
       {
-        \tl_if_blank:VF \@contentsline@arg@three
+        \tl_if_blank:nF {#3}
          {
-           \tl_if_blank:VF\@contentsline@arg@four
+           \tl_if_blank:nF {#4}
              {
                \int_case:nnF {\Hy@linktoc}
                  {
@@ -136,13 +138,12 @@
              } % none
            }
        }
-    \AddToHook{cmd/addcontentsline/before}[hyp]
+    \AddToHookWithArguments{cmd/addcontentsline/before}[hyp]
      {%
-       \ExpandArgs{ooo}
        \Hy@addcontentsline@addbookmark
-         {\addcontentsline@arg@one}
-         {\addcontentsline@arg@two}
-         {\addcontentsline@arg@three}%
+         {#1}
+         {#2}
+         {#3}%
      }   
    }    
 \ExplSyntaxOff

@@ -1,6 +1,6 @@
 % \iffalse meta-comment
 %
-%% File: toc-kernel-functions.dtx (C) Copyright 2022-2023 LaTeX Project
+%% File: latex-lab-toc-kernel-changes.dtx (C) Copyright 2022-2023 LaTeX Project
 %
 % It may be distributed and/or modified under the conditions of the
 % LaTeX Project Public License (LPPL), either version 1.3c of this
@@ -16,6 +16,9 @@
 %
 % for those people who are interested or want to report an issue.
 %
+% dates for latex-lab-kernel-changes.sty (pulled from various sources, see ins)
+\def\ltlabkerneldate{2023-10-16}
+\def\ltlabkernelversion{0.85b}
 %<*driver>
 \documentclass{l3doc}
 \EnableCrossrefs
@@ -27,10 +30,10 @@
 %
 % \fi
 %
-% \title{The \textsf{toc-kernel-changes} package\\
+% \title{The \textsf{latex-lab-toc-kernel-changes} package\\
 % Changes and additions to the kernel related to tagging and links in toc entries}
 % \author{\LaTeX{} Project\thanks{Initial implementation done by Ulrike Fischer}}
-% \date{Version 0.81 2023-02-10}
+% \date{Version 0.83 2023-06-07}
 %
 % \maketitle
 %
@@ -56,6 +59,14 @@
 % They are marked as [class]. They are inserted with hooks here: this will break
 % if a non-standard class is used.
 %
+% \subsection{Package declaration}
+%    \begin{macrocode}
+%<*kernelchange>
+\ProvidesPackage{latex-lab-kernel-changes}
+        [\ltlabkerneldate\space v\ltlabkernelversion\space 
+         General kernel and class changes]
+%    \end{macrocode}
+%
 % \subsection{Providing the counter representation \cs{theHxx} generally}
 % [kernel?]
 %
@@ -67,7 +78,6 @@
 %
 % At first we suppress the patches from hyperref:
 %    \begin{macrocode}
-%<*kernelchange>
 \def\hyper@nopatch@counter{}
 %    \end{macrocode}
 %
@@ -132,6 +142,7 @@
 % once that heading stuff is turned into template 
 % instances the template should set that number.
 %    \begin{macrocode}
+\def\toclevel@document{-10}
 \def\toclevel@part{-1}
 \def\toclevel@chapter{0}
 \def\toclevel@section{1}
@@ -141,8 +152,32 @@
 \def\toclevel@subparagraph{5}
 \def\toclevel@figure{1}
 \def\toclevel@table{1}
+%    \end{macrocode}
+%
+%\subsection{Storing the relation between target names and structure numbers}
+% To be able to add a /Ref key to structures the tagging makes use of target names
+% and stores the relationship in a property. We add a hook to \cs{MakeLinkTarget} to 
+% catch as much as possible, see also tagging issue \#20. This should work also
+% without hyperref. The property is defined in tagpdf-base, so the code would 
+% work also without tagging but we add a test anyway, this is probably faster.
+%    \begin{macrocode}
+\ExplSyntaxOn
+\AddToHookWithArguments{cmd/MakeLinkTarget/after}
+  {
+    \tag_if_active:T
+      {    
+        \tl_if_blank:VF \@currentHref
+          {
+            \prop_gput:Nee \g__tag_struct_dest_num_prop {\@currentHref}{\tag_get:n{struct_num}}
+          }
+      }    
+  }
+\ExplSyntaxOff  
+%    \end{macrocode}
+%    \begin{macrocode}
 %</kernelchange>
 %    \end{macrocode}
+%
 % \subsection{load kernel changes}
 %    \begin{macrocode}
 %<*package>
@@ -157,18 +192,16 @@
 %    \begin{macrocode}
 \def\@contentsline@cfgpoint@before#1#2#3#4{}
 \def\@contentsline@cfgpoint@after#1#2#3#4{}
-\def\@contentsline@arg@one{}%level
-\def\@contentsline@arg@two{}%text
-\def\@contentsline@arg@three{}%page
-\def\@contentsline@arg@four{}%destination  
+%    \end{macrocode}
+% for the hooks we need that the \cs{l@XX} pass also the destination and
+% that \cs{l@XX} takes three arguments. 
+% TODO: test that, if there are two many problems we should pass the 
+% destination through a command name ...
+%    \begin{macrocode}
 \def\contentsline#1#2#3#4%
   {%
-    \def\@contentsline@arg@one{#1}%level
-    \def\@contentsline@arg@two{#2}%text
-    \def\@contentsline@arg@three{#3}%page
-    \def\@contentsline@arg@four{#4}%destination  
     \@contentsline@cfgpoint@before{#1}{#2}{#3}{#4}%
-    %\gdef\@contentsline@destination{#4}%
+    \gdef\@contentsline@destination{#4}%
     \csname l@#1\endcsname{#2}{#3}%
     \@contentsline@cfgpoint@after{#1}{#2}{#3}{#4}%
   }
@@ -179,16 +212,11 @@
 %
 % \cs{addcontentsline} should always write the unique counter representation
 % \cs{@currentHref} so that we can create the |/Ref| key. At the same time
-% we need a hook, so that hyperref can add its bookmarks code. The generic hook
-% would be ok, but we need the arguments, so we store them first.
+% we need a hook, so that hyperref can add its bookmarks code, the generic hook
+% with arguments is ok. 
 %
 %    \begin{macrocode}
-\NewHook{cmd/addcontentsline/before}
-\def\addcontentsline#1#2#3{% toc extension, type, tag
-    \def\addcontentsline@arg@one{#1}% name??
-    \def\addcontentsline@arg@two{#2}%
-    \def\addcontentsline@arg@three{#3}%
-    \UseHook{cmd/addcontentsline/before}%
+\def\addcontentsline#1#2#3{% #1=toc extension, #2= heading type, tag
     \addtocontents{#1}{%
       \protect\contentsline{#2}{#3}{\thepage}{\@currentHref}\protected@file@percent
     }}
@@ -226,10 +254,19 @@
 % The text and the page
 % hooks are used in manual \cs{l@xx} commands and in \cs{l@xx} defined by
 % \cs{@dottedtocline} or by other means.
+% The arguments of the following hooks are:
+%  \begin{itemize}
+%  \item[\#1] level as a \emph{number} (integer expression), see above for the standard
+%   numbering. The standard first argument of \cs{contentsline} is not used, as
+%   \cs{@dottedtocline} knows only a number.
+%  \item[\#2] content (the second argument of a \cs{contentsline}
+%  \item[\#3] page    (the third argument of a \cs{contentsline}
+%  \item[\#3] target  (the fourth argument of a \cs{contentsline}
+%  \end{itemize}
 %    \begin{macrocode}
-\NewMirroredHookPair{contentsline/number/before}{contentsline/number/after}%
-\NewMirroredHookPair{contentsline/text/before}{contentsline/text/after}%
-\NewMirroredHookPair{contentsline/page/before}{contentsline/page/after}%
+\NewMirroredHookPairWithArguments{contentsline/number/before}{contentsline/number/after}{1}%
+\NewMirroredHookPairWithArguments{contentsline/text/before}{contentsline/text/after}{4}%
+\NewMirroredHookPairWithArguments{contentsline/page/before}{contentsline/page/after}{4}%
 %    \end{macrocode}
 %
 % The dot in the leader must be set as artifact.
@@ -237,6 +274,7 @@
 % So we need a config point.
 %
 % \cs{@dottedtocline} needs hooks and formatting commands.
+% We add a sixth argument so that it can grab the destination too.
 %    \begin{macrocode}
 \def\@dottedtocline@cfgpoint@leaders#1{#1}
 
@@ -249,9 +287,9 @@
      \leavevmode
      \@tempdima #3\relax
      \advance\leftskip \@tempdima \null\nobreak\hskip -\leftskip
-     \UseHook{contentsline/text/before}%
+     \UseHookWithArguments{contentsline/text/before}{4}{#1}{#4}{#5}{\@contentsline@destination}%
      \csname contentsline@text@#1@format\endcsname{#4}%
-     \UseHook{contentsline/text/after}%
+     \UseHookWithArguments{contentsline/text/after}{4}{#1}{#4}{#5}{\@contentsline@destination}%
      \nobreak
      \@dottedtocline@cfgpoint@leaders{%
        \leaders\hbox{$\m@th
@@ -259,9 +297,9 @@
           mu$}\hfill}%
      \nobreak
      \hb@xt@\@pnumwidth{\hfil\normalfont \normalcolor
-     \UseHook{contentsline/page/before}%
+     \UseHookWithArguments{contentsline/page/before}{4}{#1}{#4}{#5}{\@contentsline@destination}%
      #5%
-     \UseHook{contentsline/page/after}%
+     \UseHookWithArguments{contentsline/page/after}{4}{#1}{#4}{#5}{\@contentsline@destination}%
                         \kern-\p@\kern\p@}%
      \par}%
   \fi}
@@ -272,19 +310,21 @@
 % Inside or outside the box?
 %    \begin{macrocode}
 \def\numberline#1{\hb@xt@\@tempdima{%
-  \UseHook{contentsline/number/before}%
+  \UseHookWithArguments{contentsline/number/before}{1}{#1}%
   #1\hfil
-  \UseHook{contentsline/number/after}%
+  \UseHookWithArguments{contentsline/number/after}{1}{#1}%
   }}
 %    \end{macrocode}
 %
 % \subsubsection{\cs{l@xx} in the classes}
 % Depending on the class we have to redefine also more commands
 % For other classes it should be documented what is needed.
+% Let the commands grab also the third arguments. If a class redefines them again
+% it will break tagging anyway.
 %    \begin{macrocode}
 \AddToHook{class/article/after}
  {
-  \renewcommand*\l@part[2]{%
+  \renewcommand*\l@part[2]{% as in contentsline: content, page
   \ifnum \c@tocdepth >-2\relax
     \addpenalty\@secpenalty
     \addvspace{2.25em \@plus\p@}%
@@ -294,14 +334,18 @@
       \parfillskip -\@pnumwidth
       {\leavevmode
        \large \bfseries
-       \UseHook{contentsline/text/before}%
+       \UseHookWithArguments{contentsline/text/before}{4}
+         {\toclevel@part}{#1}{#2}{\@contentsline@destination}%
        \csname contentsline@text@-1@format\endcsname{#1}%
-       \UseHook{contentsline/text/after}%
+       \UseHookWithArguments{contentsline/text/after}{4}
+         {\toclevel@part}{#1}{#2}{\@contentsline@destination}%
        \hfil
        \hb@xt@\@pnumwidth{\hss
-       \UseHook{contentsline/page/before}%
+       \UseHookWithArguments{contentsline/page/before}{4}
+         {\toclevel@part}{#1}{#2}{\@contentsline@destination}%
        #2%
-       \UseHook{contentsline/page/after}%
+       \UseHookWithArguments{contentsline/page/after}{4}
+         {\toclevel@part}{#1}{#2}{\@contentsline@destination}%
                           \kern-\p@\kern\p@}}\par
        \nobreak
     \endgroup
@@ -317,14 +361,18 @@
       \leavevmode \bfseries
       \advance\leftskip\@tempdima
       \hskip -\leftskip
-       \UseHook{contentsline/text/before}%
+       \UseHookWithArguments{contentsline/text/before}{4}
+        {\toclevel@section}{#1}{#2}{\@contentsline@destination}%
        \csname contentsline@text@1@format\endcsname{#1}%
-       \UseHook{contentsline/text/after}%
+       \UseHookWithArguments{contentsline/text/after}{4}
+        {\toclevel@section}{#1}{#2}{\@contentsline@destination}%
        \nobreak\hfil
       \nobreak\hb@xt@\@pnumwidth{\hss
-      \UseHook{contentsline/page/before}%
+      \UseHookWithArguments{contentsline/page/before}{4}
+        {\toclevel@section}{#1}{#2}{\@contentsline@destination}%
        #2%
-      \UseHook{contentsline/page/after}%
+      \UseHookWithArguments{contentsline/page/after}{4}
+        {\toclevel@section}{#1}{#2}{\@contentsline@destination}%
       \kern-\p@\kern\p@}\par
     \endgroup
   \fi}
@@ -341,14 +389,18 @@
          \parfillskip -\@pnumwidth
          {\leavevmode
           \large \bfseries
-          \UseHook{contentsline/text/before}%
+          \UseHookWithArguments{contentsline/text/before}{4}
+            {\toclevel@part}{#1}{#2}{\@contentsline@destination}%
           \csname contentsline@text@-1@format\endcsname{#1}%
-          \UseHook{contentsline/text/after}%
+          \UseHookWithArguments{contentsline/text/after}{4}
+            {\toclevel@part}{#1}{#2}{\@contentsline@destination}%
           \hfil
-          \hb@xt@\@pnumwidth{\hss
-          \UseHook{contentsline/page/before}%
+          \hb@xt@\@pnumwidth{\hss          
+          \UseHookWithArguments{contentsline/page/before}{4}
+            {\toclevel@part}{#1}{#2}{\@contentsline@destination}%
           #2%
-          \UseHook{contentsline/page/after}%
+          \UseHookWithArguments{contentsline/page/after}{4}
+            {\toclevel@part}{#1}{#2}{\@contentsline@destination}%
                              \kern-\p@\kern\p@}}\par
           \nobreak
        \endgroup
@@ -364,15 +416,19 @@
          \leavevmode \bfseries
          \advance\leftskip\@tempdima
          \hskip -\leftskip
-         \UseHook{contentsline/text/before}%
+         \UseHookWithArguments{contentsline/text/before}{4}
+           {\toclevel@chapter}{#1}{#2}{\@contentsline@destination}%
          \csname contentsline@text@0@format\endcsname
            {#1}%
-         \UseHook{contentsline/text/after}%
+         \UseHookWithArguments{contentsline/text/after}{4}
+           {\toclevel@chapter}{#1}{#2}{\@contentsline@destination}%
           \nobreak\hfil
          \nobreak\hb@xt@\@pnumwidth{\hss
-          \UseHook{contentsline/page/before}%
+          \UseHookWithArguments{contentsline/page/before}{4}
+            {\toclevel@chapter}{#1}{#2}{\@contentsline@destination}%%
           #2%
-          \UseHook{contentsline/page/after}%
+          \UseHookWithArguments{contentsline/page/after}{4}
+            {\toclevel@chapter}{#1}{#2}{\@contentsline@destination}%%
                                     \kern-\p@\kern\p@}\par
          \penalty\@highpenalty
        \endgroup
@@ -390,14 +446,18 @@
          \parfillskip -\@pnumwidth
          {\leavevmode
           \large \bfseries
-          \UseHook{contentsline/text/before}%
+          \UseHookWithArguments{contentsline/text/before}{4}
+            {\toclevel@part}{#1}{#2}{\@contentsline@destination}%%
           \csname contentsline@text@-1@format\endcsname{#1}%
-          \UseHook{contentsline/text/after}%
+          \UseHookWithArguments{contentsline/text/after}{4}
+            {\toclevel@part}{#1}{#2}{\@contentsline@destination}%%
           \hfil
           \hb@xt@\@pnumwidth{\hss
-          \UseHook{contentsline/page/before}%
+          \UseHookWithArguments{contentsline/page/before}{4}
+            {\toclevel@part}{#1}{#2}{\@contentsline@destination}%%
           #2%
-          \UseHook{contentsline/page/after}%
+          \UseHookWithArguments{contentsline/page/after}{4}
+            {\toclevel@part}{#1}{#2}{\@contentsline@destination}%%
                              \kern-\p@\kern\p@}}\par
           \nobreak
        \endgroup
@@ -413,15 +473,19 @@
          \leavevmode \bfseries
          \advance\leftskip\@tempdima
          \hskip -\leftskip
-         \UseHook{contentsline/text/before}%
+         \UseHookWithArguments{contentsline/text/before}{4}
+          {\toclevel@chapter}{#1}{#2}{\@contentsline@destination}%
          \csname contentsline@text@0@format\endcsname
            {#1}%
-         \UseHook{contentsline/text/after}%
+         \UseHookWithArguments{contentsline/text/after}{4}
+          {\toclevel@chapter}{#1}{#2}{\@contentsline@destination}%
           \nobreak\hfil
          \nobreak\hb@xt@\@pnumwidth{\hss
-          \UseHook{contentsline/page/before}%
+          \UseHookWithArguments{contentsline/page/before}{4}
+           {\toclevel@chapter}{#1}{#2}{\@contentsline@destination}%
           #2%
-          \UseHook{contentsline/page/after}%
+          \UseHookWithArguments{contentsline/page/after}{4}
+           {\toclevel@chapter}{#1}{#2}{\@contentsline@destination}%
                                     \kern-\p@\kern\p@}\par
          \penalty\@highpenalty
        \endgroup
@@ -430,14 +494,4 @@
 %    \end{macrocode}
 %    \begin{macrocode}
 %</package>
-%    \end{macrocode}
-
-%    \begin{macrocode}
-%<*latex-lab>
-\ProvidesFile{toc-tagging-latex-lab-testphase.ltx}
-        [2022-10-26 v0.8 code related to the tagging of toc and similar lists]
-
-\RequirePackage{latex-lab-testphase-toc-tagging}
-
-%</latex-lab>
 %    \end{macrocode}

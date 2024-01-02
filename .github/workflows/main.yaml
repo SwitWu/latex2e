@@ -5,7 +5,7 @@ on:
   # Whenever someone pushes to a branch in our repo
   push:
     branches:
-      - "*"
+      - "**"
   # Whenever a pull request is opened, reopened or gets new commits.
   pull_request:
 # This implies that for every push to a local branch in our repo for which a
@@ -22,7 +22,7 @@ jobs:
     steps:
       # Boilerplate
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install TeX Live
         id: texlive
         uses: zauguin/install-texlive@v3
@@ -56,6 +56,24 @@ jobs:
             config: build
             engine: luatex
             extra_command: kpsewhich -mktex=tfm -must-exist ecssdc10.tfm
+            last: m3expl009
+          - module: base
+            config: build
+            engine: luatex
+            extra_command: kpsewhich -mktex=tfm -must-exist ecssdc10.tfm
+            first: m3expl009
+            last: tlb0001
+          - module: base
+            config: build
+            engine: luatex
+            extra_command: kpsewhich -mktex=tfm -must-exist ecssdc10.tfm
+            first: tlb0001
+            last: tlcs01a
+          - module: base
+            config: build
+            engine: luatex
+            extra_command: kpsewhich -mktex=tfm -must-exist ecssdc10.tfm
+            first: tlcs01a
           - module: base
             config: config-1run
           - module: base
@@ -81,24 +99,36 @@ jobs:
           - module: required/latex-lab
             config: config-OR
           - module: required/latex-lab
-            config: config-mathtagging
+            config: config-math
           - module: required/latex-lab
             config: config-OR-luatex
           - module: required/latex-lab
-            config: config-sec-tagging
+            config: config-sec
           - module: required/latex-lab
-            config: config-toc-tagging
+            config: config-toc
           - module: required/latex-lab
-            config: config-block-tagging
+            config: config-block
           - module: required/latex-lab
             config: config-LM-tagging
+          - module: required/latex-lab
+            config: config-graphic
+          - module: required/latex-lab
+            config: config-minipage
+          - module: required/latex-lab
+            config: config-float
+          - module: required/latex-lab
+            config: config-bib
+          - module: required/latex-lab
+            config: config-table-pdftex            
+          - module: required/latex-lab
+            config: config-table-luatex                                    
           - module: required/tools
-    name: "Tests: ${{ matrix.module }}${{ matrix.config && format(' - {0}', matrix.config) || ''}}${{ matrix.engine && format(' - {0}', matrix.engine) || ''}}"
+    name: "Tests: ${{ matrix.module }}${{ matrix.config && format(' - {0}', matrix.config) || ''}}${{ matrix.engine && format(' - {0}', matrix.engine) || ''}}${{ (matrix.first || matrix.last) && format(' ({0} - {1})', matrix.first || '<first>', matrix.last || '<last>') || ''}}"
     needs: texlive-cache
     steps:
       # Boilerplate
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       # We need Ghostscript for dvips and XeTeX tests.
       - run: sudo apt-get update && sudo apt-get install ghostscript
       - name: Restore TeX Live from cache
@@ -112,13 +142,17 @@ jobs:
         run: ${{ matrix.extra_command }}
       - name: Run l3build
         working-directory: ${{ matrix.module }}
-        run: "l3build check -q --show-log-on-error${{ matrix.config && format(' -c {0}', matrix.config) || ''}}${{ matrix.engine && format(' -e {0}', matrix.engine) || ''}}"
+        run: "l3build check -q --show-log-on-error${{ matrix.config && format(' -c {0}', matrix.config) || ''}}${{ matrix.engine && format(' -e {0}', matrix.engine) || ''}}${{ matrix.first && format(' --first {0}', matrix.first) || ''}}${{ matrix.last && format(' --last {0}', matrix.last) || ''}}"
       # Now we create the artifacts for the logs of failed tests
       - name: Archive failed test output
         if: ${{ always() }}
         uses: zauguin/l3build-failure-artifacts@v1
         with:
-          name: testfiles
+          # example names:
+          # - "testfiles-base-build-pdflatex"
+          # - "testfiles-base-config-1run"
+          # - "testfiles-required/amsmath"
+          name: testfiles-${{ matrix.module }}${{ matrix.config && format('-{0}', matrix.config)  || ''}}${{ matrix.engine && format('-{0}', matrix.engine) || ''}}
           # Decide how long to keep the test output artifact:
           retention-days: 3
   docs:
@@ -138,7 +172,7 @@ jobs:
     steps:
       # Boilerplate
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       # We need Ghostscript for dvips and XeTeX tests.
       - run: sudo apt-get update && sudo apt-get install ghostscript
       - name: Restore TeX Live from cache
@@ -157,7 +191,8 @@ jobs:
       - name: Archive documentation
         uses: actions/upload-artifact@v3
         with:
-          name: Documentation
+          # example names: "Documentation-base-1", "Documentation-requires"
+          name: Documentation-${{ matrix.module }}${{ matrix.environment && format('-{0}', env.LTX_DOC_COMPONENT) || ''}}
           path: "**/*.pdf"
           # Decide how long to keep the test output artifact:
           retention-days: 21
@@ -168,7 +203,7 @@ jobs:
     name: Send notifications
     runs-on: ubuntu-20.04
     # Run after the `l3build` job in order to be able to react to it's output.
-    needs: 
+    needs:
       - l3build
       - docs
     # Only run if the tests failed, we don't want to get notifications for every run.
@@ -180,7 +215,7 @@ jobs:
       - name: Send mail
         # The explicit commit hash ensures that this can't be used by dawidd6 as a
         # backdoor to execute arbitrary code during our runs.
-        uses: dawidd6/action-send-mail@6063705cefe50cb915fc53bb06d4049cae2953b2
+        uses: dawidd6/action-send-mail@48476814b0338573004e9de1e8504b25ff8cc23c
         with:
           # Currently using my (Marcel's) mail server for sending mails.
           server_address: typesetting.eu

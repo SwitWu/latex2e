@@ -31,8 +31,8 @@
 %%% From File: lthooks.dtx
 %
 %    \begin{macrocode}
-\def\lthooksversion{v1.1b}
-\def\lthooksdate{2023/04/16}
+\def\lthooksversion{v1.1f}
+\def\lthooksdate{2023/12/26}
 %    \end{macrocode}
 %
 %<*driver>
@@ -298,10 +298,6 @@
 %    consumed and any further attempt to add to it will result in
 %    executing the code to be added immediately.
 %
-%    The \meta{hook} \emph{cannot} be specified using the dot-syntax.
-%    A leading |.| is treated literally.    See
-%    section~\ref{sec:default-label} for details.
-%
 %    Using \cs{UseOneTimeHook} several times with the same
 %    \Arg{hook} means that it only executes the first time it is used.
 %    For example, if it is used in a command that can be called several times
@@ -311,6 +307,11 @@
 %    Mixing \cs{UseHook} and \cs{UseOneTimeHook} for the same
 %    \Arg{hook} should be avoided, but if this is done then neither will execute
 %    after the first \cs{UseOneTimeHook}.
+%
+%    The \meta{hook} \emph{cannot} be specified using the dot-syntax.
+%    A leading |.| is treated literally.    See
+%    section~\ref{sec:default-label} for details.
+%
 % \end{function}
 %
 % \begin{function}{\UseOneTimeHookWithArguments}
@@ -327,6 +328,11 @@
 %    longer possible to use \cs{AddToHookWithArguments} or similar with
 %    that hook.  \cs{AddToHook} continues to work as normal.
 %   Section~\ref{sec:hook-args} explains hooks with arguments.
+%
+%    The \meta{hook} \emph{cannot} be specified using the dot-syntax.
+%    A leading |.| is treated literally.    See
+%    section~\ref{sec:default-label} for details.
+%
 % \end{function}
 %
 %
@@ -607,7 +613,10 @@
 % \meta{hook} arguments, both in the \LaTeXe{} interface, and the \LaTeX3
 % interface described in section~\ref{sec:l3hook-interface}.
 %
-% Note, however, that the replacement of |.| by the \meta{default label}
+% Note,\marginpar{\raggedleft\rightskip5pt\itshape \textbf{Important:}\break The dot-syntax
+% is \textbf{not} available with
+% \cs{UseHook} and some other commands that are typically used within code!}
+% however, that the replacement of |.| by the \meta{default label}
 % takes place when the hook command is executed, so actions that are
 % somehow executed after the package ends will have the wrong
 % \meta{default label} if the dot-syntax is used.  For that reason,
@@ -786,7 +795,7 @@
 %    \end{itemize}
 %    There can only be a single relation between two labels for a
 %    given hook,
-%    i.e., a later \cs{DeclareHookrule} overwrites any previous
+%    i.e., a later \cs{DeclareHookRule} overwrites any previous
 %    declaration.
 %
 %    The \meta{hook} and \meta{label} can be specified using the
@@ -1557,8 +1566,8 @@
 %
 %    Generic hooks defined in this way are always normal hooks (i.e.,
 %    you can't implement reversed hooks this way). This is a
-%    deliberate limitation, because it speeds up the processessing
-%    conciderably.
+%    deliberate limitation, because it speeds up the processing
+%    considerably.
 %
 %
 % \subsection{Hooks with arguments}
@@ -1853,15 +1862,17 @@
 %    \item[\hook{env/\meta{env}/begin}]
 %
 %       This hook is executed as part of \cs{begin} directly in front
-%       of the code specific to the environment start (e.g., the
-%       second argument of \cs{newenvironment}).  Its scope is the
-%       environment body.
+%       of the code specific to the environment start (e.g.,
+%       the third argument of \cs{NewDocumentEnvironment} and
+%       the second argument of \cs{newenvironment}).
+%       Its scope is the environment body.
 %
 %    \item[\hook{env/\meta{env}/end}]
 %
 %       This hook is executed as part of \cs{end} directly in front of the
-%       code specific to the end of the environment (e.g., the third
-%       argument of \cs{newenvironment}).
+%       code specific to the end of the environment (e.g.,
+%       the forth argument of \cs{NewDocumentEnvironment} and
+%       the third argument of \cs{newenvironment}).
 %
 %    \item[\hook{env/\meta{env}/after}]
 %
@@ -1997,8 +2008,9 @@
 %
 %    \item[\hook{begindocument}]
 %
-%      This hook is added to when using \cs{AtBeginDocument} and it is
-%      executed after the \texttt{.aux} file as be read in and most
+%      This hook is added to by using \cs{AddToHook}\texttt{\{begindocument\}}
+%      or by using \cs{AtBeginDocument} and it is
+%      executed after the \texttt{.aux} file has been read and most
 %      initialization are done, so they can be altered and inspected by
 %      the hook code. It is followed by a small number of further
 %      initializations that shouldn't be altered and are therefore
@@ -2396,8 +2408,9 @@
 %     \tl_show:x,
 %     \tl_log:x,
 %     \tl_set:Ne,
+%     \cs_replacement_spec:c,
 %     \prop_put:Nne,
-%     \cs_replacement_spec:c
+%     \str_count:e
 %   }
 %   Some variants of \pkg{expl3} functions.
 %   \fmiinline{should probably be moved to expl3}
@@ -2408,6 +2421,7 @@
 \cs_generate_variant:Nn \tl_set:Nn { Ne }
 \cs_generate_variant:Nn \cs_replacement_spec:N { c }
 \cs_generate_variant:Nn \prop_put:Nnn { Nne }
+\cs_generate_variant:Nn \str_count:n { e }
 %    \end{macrocode}
 % \end{macro}
 %
@@ -2689,7 +2703,7 @@
 %    \hook_new:n,
 %    \hook_new_with_args:nn
 %  }
-%  \begin{macro}{@@_new:nn}
+%  \begin{macro}{\@@_new:nn}
 %    The \cs{hook_new:n} declaration declares a new hook and expects
 %    the hook \meta{name} as its argument, e.g.,
 %    \hook{begindocument}.
@@ -2712,11 +2726,15 @@
 %   \cs{hook_new:n}, and if it already exists we complain, otherwise set
 %   the \enquote{created} flag for the hook so that it errors next time
 %   \cs{hook_new:n} is used.
+% \changes{v1.1d}{2023/05/21}
+%         {Changes to allow support arguments in cmd hooks (cmd-args).}
 %    \begin{macrocode}
     \@@_if_declared:nTF {#1}
       { \msg_error:nnn { hooks } { exists } {#1} }
       {
         \tl_new:c { g_@@_#1_declared_tl }
+        \cs_undefine:c { @@~#1 }
+        \cs_undefine:c { c_@@_#1_parameter_tl }
         \@@_make_usable:nn {#1} {#2}
 %    \end{macrocode}
 %   In case there is already code in a hook, but it's undeclared, run
@@ -2782,8 +2800,8 @@
 %    Here we'll define the \cs[no-index]{c_@@_\meta{hook}_parameter_tl}
 %    to hold a run of parameters up to the number of arguments of the
 %    hook (\verb|#2|).
-        \__kernel_cs_parm_from_arg_count:nnF
 %    \begin{macrocode}
+        \__kernel_cs_parm_from_arg_count:nnF
           { \tl_const:cn { c_@@_#1_parameter_tl } } {#2}
           {
             \msg_error:nnnn { hooks } { too-many-args } {#1} {#2}
@@ -2824,14 +2842,21 @@
 %    \end{macrocode}
 %    The \cs{g_@@_\meta{hook}_labels_clist} holds the sorted list of
 %    labels (once it got sorted). This is used only for debugging.
+%    These are defined conditionally, in case \cs{@@_make_usable:nn}
+%    is being used to redefine a hook.
+% \changes{v1.1d}{2023/05/21}
+%         {Changes to allow support arguments in cmd hooks (cmd-args).}
 %    \begin{macrocode}
-        \clist_new:c { g_@@_#1_labels_clist }
+        \clist_if_exist:cF { g_@@_#1_labels_clist }
+          {
+            \clist_new:c { g_@@_#1_labels_clist }
 %    \end{macrocode}
 %    Some hooks should reverse the default order of code chunks. To
 %    signal this we have a token list which is empty for normal hooks
 %    and contains a \verb=-= for reversed hooks.
 %    \begin{macrocode}
-        \tl_new:c { g_@@_#1_reversed_tl }
+            \tl_new:c { g_@@_#1_reversed_tl }
+          }
 %    \end{macrocode}
 %    The above is all in L3 convention, but we also provide an
 %    interface to legacy \LaTeXe{} hooks of the form \cs{@...hook},
@@ -3521,7 +3546,7 @@
 % \changes{v1.1a}{2023/04/06}
 %         {Add \cs{hook_gput_code_with_args:nnn} (hook-args).}
 %    \begin{macrocode}
-%<latexrelease>\IncludeInRelease{2023/06/01}{\hook_gput_code_with_args:nnn}
+%<latexrelease>\IncludeInRelease{2023/06/01}{\hook_gput_code:nnn}
 %<latexrelease>                 {Hooks~with~args}
 \cs_new_protected:Npn \hook_gput_code:nnn #1 #2 #3
   {
@@ -3814,23 +3839,42 @@
 %   \cs{hook_gput_next_code:nn} if the generic hook was declared, or
 %   to \cs{@@_gput_next_do:nn} otherwise.
 % \changes{v1.0p}{2021/08/25}{Standardise generic hook names (gh/648)}
+% \changes{v1.1d}{2023/05/21}
+%         {Changes to allow support arguments in cmd hooks (cmd-args).}
 %    \begin{macrocode}
-%<latexrelease>\IncludeInRelease{2021/11/15}{\@@_try_declaring_generic_hook:nnn}
-%<latexrelease>                 {Standardise~generic~hook~names}
+%<latexrelease>\IncludeInRelease{2023/06/01}{\@@_try_declaring_generic_hook:nnn}
+%<latexrelease>                 {Hooks~with~args}
 \cs_new_protected:Npn \@@_try_declaring_generic_hook:nnn #1
   {
     \@@_try_declaring_generic_hook:wnTF #1 / / / \scan_stop: {#1}
-      \hook_gput_code:nnn
+      \@@_gput_code:nnn
       \@@_gput_undeclared_hook:nnn
         {#1}
   }
 \cs_new_protected:Npn \@@_try_declaring_generic_next_hook:nn #1
   {
     \@@_try_declaring_generic_hook:wnTF #1 / / / \scan_stop: {#1}
-      \hook_gput_next_code:nn
+      \@@_gput_next_code:nn
       \@@_gput_next_do:nn
         {#1}
   }
+%<latexrelease>\EndIncludeInRelease
+%<latexrelease>\IncludeInRelease{2021/11/15}{\@@_try_declaring_generic_hook:nnn}
+%<latexrelease>                 {Standardise~generic~hook~names}
+%<latexrelease>\cs_gset_protected:Npn \@@_try_declaring_generic_hook:nnn #1
+%<latexrelease>  {
+%<latexrelease>    \@@_try_declaring_generic_hook:wnTF #1 / / / \scan_stop: {#1}
+%<latexrelease>      \hook_gput_code:nnn
+%<latexrelease>      \@@_gput_undeclared_hook:nnn
+%<latexrelease>        {#1}
+%<latexrelease>  }
+%<latexrelease>\cs_gset_protected:Npn \@@_try_declaring_generic_next_hook:nn #1
+%<latexrelease>  {
+%<latexrelease>    \@@_try_declaring_generic_hook:wnTF #1 / / / \scan_stop: {#1}
+%<latexrelease>      \hook_gput_next_code:nn
+%<latexrelease>      \@@_gput_next_do:nn
+%<latexrelease>        {#1}
+%<latexrelease>  }
 %<latexrelease>\EndIncludeInRelease
 %<latexrelease>\IncludeInRelease{2020/10/01}{\@@_try_declaring_generic_hook:nnn}
 %<latexrelease>                 {Standardise~generic~hook~names}
@@ -3889,7 +3933,7 @@
 % \changes{v1.1a}{2023/04/06}
 %         {Changes to add hook arguments (hook-args).}
 %    \begin{macrocode}
-%<latexrelease>\IncludeInRelease{2021/11/15}{\@@_try_declaring_generic_hook:wn}
+%<latexrelease>\IncludeInRelease{2023/06/01}{\@@_try_declaring_generic_hook:wn}
 %<latexrelease>                 {Hooks~with~args}
 \prg_new_protected_conditional:Npnn \@@_try_declaring_generic_hook:wn
     #1 / #2 / #3 / #4 \scan_stop: #5 { TF }
@@ -3906,17 +3950,23 @@
 %    For some commands this will not be possible, in which case
 %    \cs{@@_patch_cmd_or_delay:Nnn} (defined in \texttt{ltcmdhooks})
 %    will generate an appropriate error message.
+% \changes{v1.1d}{2023/05/21}
+%         {Changes to allow support arguments in cmd hooks (cmd-args).}
 %    \begin{macrocode}
             \str_if_eq:nnT {#1} { cmd }
-              { \@@_try_put_cmd_hook:n {#5} }
+              {
+                \@@_try_put_cmd_hook:n {#5}
+                \@@_make_usable:nn {#5} { 9 }
+                \use_none:nnn
+              }
 %    \end{macrocode}
 %
 %    Declare the hook always even if it can't really be used (error
 %    message generated elsewhere).
 %
 %    Here we use \cs{@@_make_usable:nn}, so that a \cs{hook_new:n} is
-%    still possible later.  Generic hooks take no arguments, so use zero
-%    as the second argument.
+%    still possible later.  Generic hooks (except \hook{cmd} hooks) take
+%    no arguments, so use zero as the second argument.
 %    \begin{macrocode}
             \@@_make_usable:nn {#5} { 0 }
           }
@@ -4101,21 +4151,7 @@
 %    \begin{macrocode}
 %<latexrelease>\IncludeInRelease{2021/11/15}{\@@_if_file_hook:w}
 %<latexrelease>                 {Standardise~generic~hook~names}
-\prg_new_conditional:Npnn \@@_if_file_hook:w
-    #1 / #2 \s_@@_mark #3 { TF }
-  {
-    \@@_if_generic:nTF {#3}
-      {
-        \str_if_eq:nnTF {#1} { file }
-          { \prg_return_true: }
-          { \prg_return_false: }
-      }
-      { \prg_return_false: }
-  }
 %<latexrelease>\EndIncludeInRelease
-%    \end{macrocode}
-%
-%    \begin{macrocode}
 %<latexrelease>\IncludeInRelease{2020/10/01}{\@@_if_file_hook:w}
 %<latexrelease>                 {Standardise~generic~hook~names}
 %<latexrelease>\prg_new_conditional:Npnn \@@_if_file_hook:w
@@ -4260,6 +4296,35 @@
 %    \end{macrocode}
 %  \end{macro}
 %
+%
+% \begin{macro}{
+%     \c_@@_parameter_cmd/./before_tl,\c_@@_parameter_cmd/./after_tl,
+%   }
+%   Token lists defining the number of arguments for a given type of
+%   generic hook.
+% \changes{v1.1d}{2023/05/21}
+%         {Token lists added (cmd-args).}
+%    \begin{macrocode}
+%<latexrelease>\IncludeInRelease{2023/06/01}{\c_@@_parameter_cmd/./before_tl}
+%<latexrelease>                 {Hooks~with~args}
+%    \end{macrocode}
+%
+%   \hook{cmd} hooks are declared with 9 arguments because they have a
+%   variable number of arguments (depending on the command they are
+%   attached to), so we use the maximum here.
+%    \begin{macrocode}
+\tl_const:cn { c_@@_parameter_cmd/./before_tl } { #1#2#3#4#5#6#7#8#9 }
+\tl_const:cn { c_@@_parameter_cmd/./after_tl }  { #1#2#3#4#5#6#7#8#9 }
+%    \end{macrocode}
+%
+%    \begin{macrocode}
+%<latexrelease>\EndIncludeInRelease
+%<latexrelease>\IncludeInRelease{2020/10/01}{\c_@@_parameter_cmd/./before_tl}
+%<latexrelease>                 {Hooks~with~args}
+%<latexrelease>\EndIncludeInRelease
+%    \end{macrocode}
+%  \end{macro}
+%
 % \begin{macro}{\hook_gremove_code:nn}
 % \begin{macro}{\@@_gremove_code:nn}
 %
@@ -4333,7 +4398,7 @@
 %    \end{macrocode}
 %
 %    \begin{macrocode}
-%<latexrelease>\IncludeInRelease{2023/06/01}{\hook_gremove_code:nn}
+%<latexrelease>\IncludeInRelease{2020/10/01}{\hook_gremove_code:nn}
 %<latexrelease>                 {Hooks~with~args}
 %<latexrelease>\cs_new_protected:Npn \@@_gremove_code:nn #1 #2
 %<latexrelease>  {
@@ -4371,7 +4436,8 @@
 % \end{macro}
 %
 % \begin{macro}{\@@_cs_gput_right:nnn}
-% \begin{macro}{\@@_code_gset_auxi:nnnn,\@@_code_gset_auxi:veen}
+% \begin{macro}{\@@_cs_gput_right_fast:nnn,\@@_cs_gput_right_slow:nnn}
+% \begin{macro}{\@@_code_gset_auxi:nnnn,\@@_code_gset_auxi:eeen}
 %   This macro is used to append code to the \verb|toplevel| and
 %   \verb|next| token lists, trating them correctly depending on their
 %   number of arguments, and depending if the code being added should
@@ -4379,13 +4445,35 @@
 %   stored as parameter tokens.
 % \changes{v1.1a}{2023/04/06}
 %         {Macro added (hook-args).}
+% \changes{v1.1e}{2023/06/06}
+%         {Short-circuit when the hook is declared without args (gh1078).}
 %    \begin{macrocode}
 %<latexrelease>\IncludeInRelease{2023/06/01}{\@@_cs_gput_right:nnn}
 %<latexrelease>                 {Hooks~with~args}
-\cs_new_protected:Npn \@@_cs_gput_right:nnn #1 #2 #3
+%    \end{macrocode}
+%
+%   Check if the current hook is declared and takes no arguments.  In
+%   this case, we short-circuit and use the simpler and much faster
+%   approach that doesn't require hash-doubling.
+%    \begin{macrocode}
+\cs_new_protected:Npn \@@_cs_gput_right:nnn #1 #2
+  {
+    \if:w T
+        \@@_if_declared:nF {#2} { F }
+        \tl_if_empty:cF { c_@@_#2_parameter_tl } { F }
+          T
+      \exp_after:wN \@@_cs_gput_right_fast:nnn
+    \else:
+      \exp_after:wN \@@_cs_gput_right_slow:nnn
+    \fi:
+        {#1} {#2}
+  }
+\cs_new_protected:Npn \@@_cs_gput_right_fast:nnn #1 #2 #3
+  { \cs_gset:cpx { @@#1~#2 } { \exp_not:v { @@#1~#2 } \exp_not:n {#3} } }
+\cs_new_protected:Npn \@@_cs_gput_right_slow:nnn #1 #2 #3
   {
 %    \end{macrocode}
-%   The auxiliary \cs{@@_code_gset_auxi:veen} just does the assignment
+%   The auxiliary \cs{@@_code_gset_auxi:eeen} just does the assignment
 %   at the end.  Its first argument is the parameter text of the macro,
 %   which is chosen here depending if
 %   \cs[no-index]{c_@@_\meta{hook}_parameter_tl} exists, if the hook is
@@ -4393,13 +4481,15 @@
 %    \begin{macrocode}
     \cs_if_exist:cF { @@#1~#2 }
       { \@@_code_gset_aux:nnn {#1} {#2} { } }
-    \@@_code_gset_auxi:veen
+    \@@_code_gset_auxi:eeen
       {
-        c_@@_
         \@@_if_declared:nTF {#2}
-          { #2_parameter }
-          { \@@_if_generic:nTF {#2} { empty } { nine_parameters } }
-        _tl
+          { \tl_use:c { c_@@_#2_parameter_tl } }
+          {
+            \@@_if_generic:nTF {#2}
+              { \@@_generic_parameter:n {#2} }
+              { \c_@@_nine_parameters_tl }
+          }
       }
 %    \end{macrocode}
 %   Here we take the existing code in the macro, expand it with as many
@@ -4435,7 +4525,7 @@
 %    \begin{macrocode}
 \cs_new_protected:Npn \@@_code_gset_auxi:nnnn #1 #2 #3 #4
   { \cs_gset:cpn {#4} #1 { #2 #3 } }
-\cs_generate_variant:Nn \@@_code_gset_auxi:nnnn { veen }
+\cs_generate_variant:Nn \@@_code_gset_auxi:nnnn { eeen }
 %    \end{macrocode}
 %
 %    \begin{macrocode}
@@ -4443,9 +4533,12 @@
 %<latexrelease>\IncludeInRelease{2020/10/01}{\@@_cs_gput_right:nnn}
 %<latexrelease>                 {Hooks~with~args}
 %<latexrelease>\cs_undefine:N \@@_cs_gput_right:nnn
+%<latexrelease>\cs_undefine:N \@@_cs_gput_right_fast:nnn
+%<latexrelease>\cs_undefine:N \@@_cs_gput_right_slow:nnn
 %<latexrelease>\cs_undefine:N \@@_code_gset_auxi:nnnn
 %<latexrelease>\EndIncludeInRelease
 %    \end{macrocode}
+% \end{macro}
 % \end{macro}
 % \end{macro}
 %
@@ -4509,8 +4602,8 @@
   {
     \cs_if_exist:cT { @@#1~#2 }
       {
-        \@@_code_gset_auxi:veen
-          { c_@@_#2_parameter_tl }
+        \@@_code_gset_auxi:eeen
+          { \tl_use:c { c_@@_#2_parameter_tl } }
           {
             \exp_args:NNo \exp_args:No \@@_double_hashes:n
               {
@@ -4836,6 +4929,13 @@
       { #1_parameter } { empty }
     _tl \cs_end:
   }
+\cs_new:Npn \@@_generic_parameter:n #1
+  { \@@_generic_parameter:w #1 / / / \s_@@_mark }
+\cs_new:Npn \@@_generic_parameter:w #1 / #2 / #3 / #4 \s_@@_mark
+  {
+    \cs_if_exist_use:cF { c_@@_parameter_#1/./#3_tl }
+      { \c_@@_empty_tl }
+  }
 %<latexrelease>\EndIncludeInRelease
 %    \end{macrocode}
 %
@@ -4843,6 +4943,7 @@
 %<latexrelease>\IncludeInRelease{2020/10/01}{\@@_parameter:n}
 %<latexrelease>                 {Hooks~with~args}
 %<latexrelease>\cs_undefine:N \@@_parameter:n
+%<latexrelease>\cs_undefine:N \@@_generic_parameter:n
 %<latexrelease>\EndIncludeInRelease
 %    \end{macrocode}
 % \end{macro}
@@ -5160,7 +5261,7 @@
 %    \begin{macrocode}
     \@@_debug:n
       {
-        \iow_term:x{^^JAll~ initialized~ (non-empty)~ hooks:}
+        \iow_term:x { ^^J All~initialized~(non-empty)~hooks: }
         \prop_map_inline:Nn \g_@@_used_prop
           {
             \iow_term:x
@@ -5198,6 +5299,10 @@
 %<latexrelease>    \cs_gset_eq:NN \hook_use:n \@@_use_initialized:n
 %<latexrelease>    \cs_gset_eq:NN \@@_preamble_hook:n \use_none:n
 %<latexrelease>  }
+%<@@=>
+%<latexrelease>\cs_gset_eq:NN \@expl@@@initialize@all@@
+%<latexrelease>               \__hook_initialize_all:
+%<@@=hook>
 %<latexrelease>\EndIncludeInRelease
 %    \end{macrocode}
 %  \end{macro}
@@ -5922,10 +6027,13 @@
         ^^J ->~The~
         \@@_if_generic:nT {#1} { generic~ }
         hook~'#1'
-        \exp_args:Nf \@@_print_args:n
+        \@@_if_disabled:nF {#1}
           {
-            \int_eval:n
-              { \exp_args:Ne \str_count:n { \@@_parameter:n {#1} } / 3 }
+            \exp_args:Nf \@@_print_args:nn {#1}
+              {
+                \int_eval:n
+                  { \str_count:e { \@@_parameter:n {#1} } / 3 }
+              }
           }
         :
       }
@@ -6166,10 +6274,16 @@
 % \begin{macro}{\@@_print_args:n}
 %    Pretty-prints the number of arguments of a hook.
 %    \begin{macrocode}
-\cs_new:Npn \@@_print_args:n #1
+\cs_new:Npn \@@_print_args:nn #1 #2
   {
-    \int_compare:nNnT {#1} > { 0 }
-      { ~ (#1~argument \int_compare:nNnT {#1} > { 1 } { s } ) }
+    \int_compare:nNnT {#2} > { 0 }
+      {
+        \@@_if_declared:nT {#1} { \use_none:nnn }
+        \@@_if_cmd_hook:nT {#1}
+          { \use_i:nnn { ~ (unknown ~ } }
+        \use:n { ~ (#2 ~ }
+        argument \int_compare:nNnT {#2} > { 1 } { s } )
+      }
   }
 %    \end{macrocode}
 % \end{macro}
@@ -6311,11 +6425,14 @@
 %   execution token list.
 % \changes{v1.1a}{2023/04/06}
 %         {Changes to add hook arguments (hook-args).}
+% \changes{v1.1c}{2023/04/19}
+%         {Initialise hook structure when adding 'next' code (gh/1052).}
 %    \begin{macrocode}
 %<latexrelease>\IncludeInRelease{2023/06/01}{\@@_gput_next_do:nn}
 %<latexrelease>                 {Hooks~with~args}
 \cs_new_protected:Npn \@@_gput_next_do:nn #1
   {
+    \@@_init_structure:n {#1}
     \@@_chk_args_allowed:nn {#1} { AddToHookNext }
     \@@_cs_if_empty:cT { @@~#1 }
       { \@@_update_hook_code:n {#1} }
@@ -6778,24 +6895,24 @@
 %   \cs{@@_next\textvisiblespace\meta{hook}} are empty.
 % \changes{v1.1a}{2023/04/06}
 %         {Changes to add hook arguments (hook-args).}
+% \changes{v1.1c}{2023/04/19}
+%         {Simpler and faster version (gh/1052).}
 %    \begin{macrocode}
 %<latexrelease>\IncludeInRelease{2023/06/01}{\hook_if_empty:n}
 %<latexrelease>                 {Hooks~with~args}
 \prg_new_conditional:Npnn \hook_if_empty:n #1 { p , T , F , TF }
   {
-    \@@_if_structure_exist:nTF {#1}
-      {
-        \bool_lazy_and:nnTF
-            { \prop_if_empty_p:c { g_@@_#1_code_prop } }
-            {
-              \bool_lazy_and_p:nn
-                { \@@_cs_if_empty_p:c { @@_toplevel~#1 } }
-                { \@@_cs_if_empty_p:c { @@_next~#1 } }
-            }
-          { \prg_return_true: }
-          { \prg_return_false: }
-      }
-      { \prg_return_true: }
+    \if:w
+        T
+        \prop_if_exist:cT { g_@@_#1_code_prop }
+          { \prop_if_empty:cF { g_@@_#1_code_prop } { F } }
+        \@@_cs_if_empty:cF { @@_toplevel~#1 } { F }
+        \@@_cs_if_empty:cF { @@_next~#1 } { F }
+        T
+      \prg_return_true:
+    \else:
+      \prg_return_false:
+    \fi:
   }
 %<latexrelease>\EndIncludeInRelease
 %    \end{macrocode}
@@ -6915,6 +7032,37 @@
       }
       { \prg_return_false: }
   }
+%    \end{macrocode}
+%  \end{macro}
+%  \end{macro}
+%
+% \begin{macro}[pTF]{\@@_if_cmd_hook:n}
+% \begin{macro}[pTF]{\@@_if_cmd_hook:w}
+%   An internal conditional that checks if a given hook is a valid
+%   generic \hook{cmd} hook.
+% \changes{v1.1d}{2023/05/21}
+%         {Changes to allow support arguments in cmd hooks (cmd-args).}
+%    \begin{macrocode}
+%<latexrelease>\IncludeInRelease{2023/06/01}{\@@_if_cmd_hook:n}
+%<latexrelease>                 {Hooks~with~args}
+\prg_new_conditional:Npnn \@@_if_cmd_hook:n #1 { T }
+  { \@@_if_cmd_hook:w #1 / / / \s_@@_mark }
+\cs_new:Npn \@@_if_cmd_hook:w #1 / #2 / #3 / #4 \s_@@_mark
+  {
+    \if:w Y
+          \str_if_eq:nnF {#1} { cmd } { N }
+          \tl_if_exist:cF { c_@@_generic_#1/./#3_tl } { N }
+          Y
+      \prg_return_true:
+    \else:
+      \prg_return_false:
+    \fi:
+  }
+%<latexrelease>\EndIncludeInRelease
+%<latexrelease>\IncludeInRelease{2020/10/01}{\@@_if_cmd_hook:n}
+%<latexrelease>                 {Hooks~with~args}
+%<latexrelease>\cs_undefine:N \@@_if_cmd_hook:nT
+%<latexrelease>\EndIncludeInRelease
 %    \end{macrocode}
 %  \end{macro}
 %  \end{macro}
@@ -7233,7 +7381,7 @@
 \NewDocumentCommand \NewMirroredHookPairWithArguments { mmm }
   { \hook_new_pair_with_args:nnn {#1} {#2} {#3} }
 %<latexrelease>\EndIncludeInRelease
-%<latexrelease>\IncludeInRelease{2023/06/01}{\NewHookWithArguments}
+%<latexrelease>\IncludeInRelease{2020/10/01}{\NewHookWithArguments}
 %<latexrelease>                 {Hooks~with~args}
 %<latexrelease>\cs_new_protected:Npn \NewHookWithArguments #1 #2 { }
 %<latexrelease>\cs_new_protected:Npn \NewReversedHookWithArguments #1 #2 { }

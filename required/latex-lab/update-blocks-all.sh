@@ -1,8 +1,8 @@
-#l3build save -cconfig-block-tagging -epdftex,luatex \
-#l3build save -cconfig-block-tagging -epdftex \
+#l3build save -cconfig-block -epdftex,luatex \
+#l3build save -cconfig-block -epdftex \
 
 
-l3build save -cconfig-block-tagging -epdftex,luatex \
+l3build save -cconfig-block -epdftex,luatex \
 	blocks-item-01 \
 	blocks-000 \
 	blocks-enumerate-01 \
@@ -25,12 +25,14 @@ l3build save -cconfig-block-tagging -epdftex,luatex \
 	blocks-hyperref-01 \
 	blocks-theorem-01 \
 	blocks-theorem-02 \
+	blocks-theorem-03 \
         blocks-quote-01 \
         blocks-quote-02 \
         blocks-trivlist-00 \
 	blocks-trivlist-01 \
 	blocks-trivlist-02 \
 	blocks-verbatim-01 \
+	blocks-verbatim-02 \
 	hyperref-target \
         ptag-001 \
         problem-blocks-tabbing \

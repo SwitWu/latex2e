@@ -15,6 +15,7 @@ installfiles = {
                  "*.ltx",
                  "*.sty",
 		 "glyphtounicode-cmex.tex",
+         "tagpdf-ns-latex-lab.def"  
 		}
 typesetfiles = {
                  "latex-lab-*.dtx",
@@ -29,7 +30,7 @@ sourcefiles  = {
                  "*-????-??-??.sty",
   		 "glyphtounicode-cmex.tex",
 		}
-
+textfiles = {"README.md", "changes.txt"}
 -- not testing xetex in the lab, we may want to switch to pdftex instead of etex though
 
 checkengines = { "pdftex", "luatex" }
@@ -62,11 +63,18 @@ checksearch  = true
 
 checkconfigs = 
  {"build","config-TU","config-OR",
-  "config-mathtagging",
+  "config-math",
   "config-OR-luatex",
-  "config-sec-tagging",
-  "config-toc-tagging",
-  "config-block-tagging",
+  "config-sec",
+  "config-toc",
+  "config-block",
+  "config-graphic",
+  "config-minipage",
+  "config-float",
+  "config-bib",
+  "config-LM-tagging",
+  "config-table-pdftex",
+  "config-table-luatex"
  }
 
 

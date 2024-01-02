@@ -1,6 +1,6 @@
 name: Automated testing with TeX Live pretest
 
-# Currently we run in two situations:
+# We only run when manually triggered
 on:
   workflow_dispatch:
 
@@ -14,7 +14,7 @@ jobs:
     steps:
       # Boilerplate
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install TeX Live
         id: texlive
         uses: zauguin/install-texlive@v3
@@ -23,7 +23,7 @@ jobs:
           # different workflows.
           package_file: .github/tl_packages
           repository: https://pretest.math.hamburg/
-          cache_version: 0-2023
+          cache_version: 0-pretest
   # The l3build job contains the actual work. We misuse the matrix mechanism to
   # create three jobs which only differ in minimal elements.
   # For tags we do not run this since we run the release job instead.
@@ -75,15 +75,29 @@ jobs:
           - module: required/latex-lab
             config: config-OR
           - module: required/latex-lab
-            config: config-mathtagging
+            config: config-math
           - module: required/latex-lab
             config: config-OR-luatex
           - module: required/latex-lab
-            config: config-sec-tagging
+            config: config-sec
           - module: required/latex-lab
-            config: config-toc-tagging
+            config: config-toc
           - module: required/latex-lab
-            config: config-block-tagging
+            config: config-block
+          - module: required/latex-lab
+            config: config-LM-tagging
+          - module: required/latex-lab
+            config: config-graphic
+          - module: required/latex-lab
+            config: config-minipage
+          - module: required/latex-lab
+            config: config-float
+          - module: required/latex-lab
+            config: config-bib
+          - module: required/latex-lab
+            config: config-table-pdftex            
+          - module: required/latex-lab
+            config: config-table-luatex                        
           - module: required/tools
     name: "Tests: ${{ matrix.module }}${{ matrix.config && format(' - {0}', matrix.config) || ''}}${{ matrix.engine && format(' - {0}', matrix.engine) || ''}}"
     needs: texlive-cache
@@ -91,7 +105,7 @@ jobs:
     steps:
       # Boilerplate
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       # We need Ghostscript for dvips and XeTeX tests.
       - run: sudo apt-get update && sudo apt-get install ghostscript
       - name: Restore TeX Live from cache
@@ -111,7 +125,11 @@ jobs:
         if: ${{ always() }}
         uses: zauguin/l3build-failure-artifacts@v1
         with:
-          name: testfiles
+          # example names:
+          # - "testfiles-base-build-pdflatex"
+          # - "testfiles-base-config-1run"
+          # - "testfiles-required/amsmath"
+          name: testfiles-${{ matrix.module }}${{ matrix.config && format('-{0}', matrix.config)  || ''}}${{ matrix.engine && format('-{0}', matrix.engine) || ''}}
           # Decide how long to keep the test output artifact:
           retention-days: 3
   docs:
@@ -132,7 +150,7 @@ jobs:
     steps:
       # Boilerplate
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       # We need Ghostscript for dvips and XeTeX tests.
       - run: sudo apt-get update && sudo apt-get install ghostscript
       - name: Restore TeX Live from cache
@@ -151,7 +169,8 @@ jobs:
       - name: Archive documentation
         uses: actions/upload-artifact@v3
         with:
-          name: Documentation
+          # example names: "Documentation-base-1", "Documentation-requires"
+          name: Documentation-${{ matrix.module }}${{ matrix.environment && format('-{0}', env.LTX_DOC_COMPONENT) || ''}}
           path: "**/*.pdf"
           # Decide how long to keep the test output artifact:
           retention-days: 21
